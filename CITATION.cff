@@ -1,0 +1,85 @@
+cff-version: 1.2.0
+message: "If you use this model, please cite it as below."
+authors:
+  - family-names: "Song"
+    given-names: "Bairu"
+title: "Urban Scaling Simulator"
+version: 1.0.0
+date-released: 2026-01-25
+url: "https://github.com/BarryS27/Urban-Scaling-Simulator"
+keywords:
+  - urban scaling
+  - endogenous growth
+  - quantitative sociology
+  - malthusian trap
+references:
+  - type: article
+    authors:
+      - family-names: "Bettencourt"
+        given-names: "Luís M. A."
+    title: "Growth, Innovation, Scaling, and the Pace of Life in Cities"
+    journal: "Proceedings of the National Academy of Sciences"
+    volume: 104
+    issue: 17
+    year: 2007
+    pages: "7301-7306"
+    doi: "10.1073/pnas.0610172104" #
+  - type: article
+    authors:
+      - family-names: "Romer"
+        given-names: "Paul M."
+    title: "Endogenous Technological Change"
+    journal: "Journal of Political Economy"
+    volume: 98
+    issue: 5
+    year: 1990
+    url: "https://www.journals.uchicago.edu/doi/abs/10.1086/261725" #
+  - type: article
+    authors:
+      - family-names: "Solow"
+        given-names: "Robert M."
+    title: "A Contribution to the Theory of Economic Growth"
+    journal: "The Quarterly Journal of Economics"
+    volume: 70
+    issue: 1
+    year: 1956
+    pages: "65-94"
+    doi: "10.2307/1884513" #
+  - type: article
+    authors:
+      - family-names: "Stark"
+        given-names: "Oded"
+      - family-names: "Taylor"
+        given-names: "J. Edward"
+    title: "Relative Deprivation and International Migration"
+    journal: "Demography"
+    volume: 26
+    issue: 1
+    year: 1989
+    pages: "1-14"
+    doi: "10.2307/2061490" #
+  - type: article
+    authors:
+      - family-names: "Verhulst"
+        given-names: "P. F."
+    title: "Notice Sur La Loi Que La Population Suit Dans Son Accroissement"
+    journal: "Correspondence Mathematique et Physique"
+    volume: 10
+    year: 1838
+    pages: "113-121"
+    url: "https://www.neo-classical-physics.info/uploads/3/4/3/6/34363841/verhulst_-_law_of_population.pdf" #
+  - type: article
+    authors:
+      - family-names: "Lanchester"
+        given-names: "Frederick William"
+    title: "Aircraft in Warfare: The Dawn of the Fourth Arm"
+    year: 1916
+    url: "https://en.wikisource.org/wiki/Aircraft_in_Warfare_(1916)/Chapter_5" #
+  - type: article
+    authors:
+      - family-names: "Gini"
+        given-names: "C."
+    title: "Variabilite e Mutabilita"
+    year: 1912
+    journal: "Tipografia Di Paolo Cuppini, Bologna"
+    url: "https://www.scirp.org/reference/referencespapers?referenceid=3750038" #
