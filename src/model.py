@@ -24,6 +24,17 @@ class CityEngine:
         self.wealth_dist = [50.0] * 1000
         self.gini_data = []                                     # Historical tracking of Gini Coefficient
         self.population_data = []                               # Historical tracking of population size
+
+        # Migration-related institutional parameters
+        self.eta_base = 0.02                                    # Baseline migration sensitivity
+        self.infrastructure = 0.6                               # Transport / infrastructure index [0,1]
+        self.policy_barrier = 0.4                               # Institutional friction (e.g. hukou, visas)
+        self.info_flow = 0.7                                    # Information transparency [0,1]
+        
+        # Elasticities
+        self.alpha_I = 1.0
+        self.alpha_P = 1.5
+        self.alpha_F = 0.8
     
     @property
     def population(self):
@@ -55,6 +66,17 @@ class CityEngine:
         # Standard Gini formula for discrete distributions
         gini = (2 * cum_wealth) / (n * total) - (n + 1) / n
         return gini
+
+    def get_migration_sensitivity(self):
+        """
+        Computes dynamic migration sensitivity (eta) based on
+        infrastructure, policy barriers, and information flow.
+        """
+        infra_effect = 1 + self.alpha_I * self.infrastructure
+        policy_effect = math.exp(-self.alpha_P * self.policy_barrier)
+        info_effect = 1 + self.alpha_F * self.info_flow
+    
+        return self.eta_base * infra_effect * policy_effect * info_effect
     
     def handle_population_shift(self, projected_population):
         """
@@ -79,11 +101,14 @@ class CityEngine:
 
         # Case 2: Outward Migration / Social Attrition
         elif diff < 0:
-            # Sort wealth to simulate that the impoverished are most vulnerable to displacement
-            self.wealth_dist.sort()
             num_to_remove = abs(diff)
-            # Remove the n individuals with the lowest wealth
-            self.wealth_dist = self.wealth_dist[num_to_remove:]
+            if num_to_remove >= self.population:
+                self.wealth_dist = []
+            else:
+                # Vulnerability score = random factor / (wealth + 0.1)
+                scored_population = [(w, random.random() / (w + 0.1)) for w in self.wealth_dist]
+                scored_population.sort(key=lambda x: x[1], reverse=True)
+                self.wealth_dist = [item[0] for item in scored_population[num_to_remove:]]
     
     def run_fiscal_year(self, edu_rate, tax_rate):
         """
@@ -95,32 +120,33 @@ class CityEngine:
 
         self.year += 1
 
-        # 1. Economic Production: Yield follows urban scaling law Y = A * N^beta
-        gross_yield = self.intellect * math.pow(self.population, self.beta)
-        net_to_people = gross_yield * (1 - tax_rate)
-        avg_share = net_to_people / self.population
-
-        # 2. Micro-distribution and Survival Attrition
-        new_wealth = []
+        # 1. Only survivors form the "Effective Labor Force".
+        survivors = []
         for w in self.wealth_dist:
-            # Apply a random luck/productivity shock
-            shock = random.lognormvariate(0,0.3)
-            w += avg_share * shock
-            w -= self.cost                                      # Deduct annual survival cost
+            w -= self.cost                                      # Survival cost is paid at the start of the year
             if w > 0:
-                new_wealth.append(w)                            # Only survivors continue to the next year
-        
-        self.wealth_dist = new_wealth
+                survivors.append(w)
+        self.wealth_dist = survivors
 
-        # 3. Post-attrition safety check
+        # Post-attrition safety check
         if self.population == 0:
             return {
                 "year": self.year,
                 "population": 0,
                 "gini": None,
                 "morale": 0,
-                "yield": int(gross_yield)
+                "yield": 0                                      # Changed from gross_yield to 0, since no one produced anything
             }
+
+        # 2. Production & Distribution by the Effective Labor Force
+        gross_yield = self.intellect * math.pow(self.population, self.beta)
+        net_to_people = gross_yield * (1 - tax_rate)
+        avg_share = net_to_people / self.population
+
+        # Distribute wealth to survivors
+        for i in range(self.population):
+            shock = random.lognormvariate(0, 0.3)
+            self.wealth_dist[i] += avg_share * shock
 
         # 4. Socio-metric calculation
         gini = self.get_gini(self.wealth_dist)
@@ -132,11 +158,19 @@ class CityEngine:
         self.population_data.append(self.population)
 
         # 5. Endogenous Growth: Education investment drives Intellect (TFP)
-        self.intellect *= math.exp(edu_rate * 0.15)
+        # Marginal returns on TFP
+        growth_factor = (edu_rate * 0.15) / math.sqrt(self.intellect)
+        self.intellect *= (1 + growth_factor)
 
         # 6. Macroscopic Population Dynamics
         # Migration is driven by morale relative to a benchmark
-        migration = 0.02 * math.log(morale / 25) if morale > 0 else -0.1
+        eta = self.get_migration_sensitivity()
+        benchmark_morale = 25
+        
+        raw_migration = eta * math.log(max(morale, 1e-9) / benchmark_morale)
+        MAX_OUTFLOW_RATE = math.log(0.7)                          # ln(0.7) ≈ -0.356 (represents max 30% drop)
+        migration = max(MAX_OUTFLOW_RATE, raw_migration)
+
         # Logistic growth accounts for environmental carrying capacity
         logistic_growth = self.base_growth * (1 - self.population / self.land_capacity)
 
