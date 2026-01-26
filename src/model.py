@@ -33,6 +33,8 @@ class CityEngine:
         self.wealth_dist = [default_config["wealth"]] * default_config["population"]
         self.gini_data = []                                     # Historical tracking of Gini Coefficient
         self.population_data = []                               # Historical tracking of population size
+        self.morale_data = []                                   # Historical tracking of morale
+        self.yield_data = []                                    # Historical tracking of yield
 
         # Migration-related institutional parameters
         self.eta_base = 0.02                                    # Baseline migration sensitivity
@@ -139,13 +141,11 @@ class CityEngine:
 
         # Post-attrition safety check
         if self.population == 0:
-            return {
-                "year": self.year,
-                "population": 0,
-                "gini": None,
-                "morale": 0,
-                "yield": 0                                      # Changed from gross_yield to 0, since no one produced anything
-            }
+            self.population_data.append(0)
+            self.gini_data.append(0)
+            self.morale_data.append(0)
+            self.yield_data.append(0)
+            return {"population": 0}
 
         # 2. Production & Distribution by the Effective Labor Force
         gross_yield = self.intellect * math.pow(self.population, self.beta)
@@ -165,6 +165,8 @@ class CityEngine:
 
         self.gini_data.append(gini)
         self.population_data.append(self.population)
+        self.morale_data.append(morale)
+        self.yield_data.append(int(gross_yield))
 
         # 5. Endogenous Growth: Education investment drives Intellect (TFP)
         # Marginal returns on TFP
@@ -189,13 +191,7 @@ class CityEngine:
         # Synchronize macroscopic math with microscopic agent list
         self.handle_population_shift(projected_population)
         
-        return {
-            "year": self.year,
-            "population": self.population,
-            "gini": round(gini, 3),
-            "morale": round(morale, 2),
-            "yield": int(gross_yield)
-        }
+        return { "population": self.population }
 
     def get_report(self):
         """Print final data"""
@@ -203,5 +199,7 @@ class CityEngine:
             "name": self.name,
             "final_tfp": self.intellect,
             "history_gini": self.gini_data,
-            "history_pop": self.population_data
+            "history_pop": self.population_data,
+            "history_morale": self.morale_data,
+            "history_yield": self.yield_data
         }
