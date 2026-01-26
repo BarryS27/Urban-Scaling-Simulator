@@ -83,3 +83,30 @@ references:
     year: 1912
     journal: "Tipografia Di Paolo Cuppini, Bologna"
     url: "https://www.scirp.org/reference/referencespapers?referenceid=3750038" #
+  - type: article
+    authors:
+      - family-names: "Atkinson"
+        given-names: "Anthony B."
+    title: "On the Measurement of Inequality"
+    journal: "Journal of Economic Theory"
+    volume: 2
+    issue: 3
+    year: 1970
+    pages: "244-263"
+    doi: "10.1016/0022-0531(70)90039-6" #
+  - type: book
+    authors:
+      - family-names: "Mincer"
+        given-names: "Jacob"
+    title: "Schooling, Experience, and Earnings"
+    publisher: "National Bureau of Economic Research (NBER)"
+    year: 1974
+    url: "https://www.nber.org/books-and-chapters/schooling-experience-and-earnings" #
+  - type: book
+    authors:
+      - family-names: "Gibrat"
+        given-names: "Robert"
+    title: "Les inégalités économiques"
+    publisher: "Librairie du Recueil Sirey"
+    year: 1931
+    url: "https://archive.org/details/lesinegaliteseco0000gibr" #
