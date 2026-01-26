@@ -1,5 +1,6 @@
 import os
 import csv
+import datetime
 from model import CityEngine
 
 def run_simulation(round_name, intellect, population, wealth, cost, tax_baseline, edu_baseline, years):
@@ -7,7 +8,8 @@ def run_simulation(round_name, intellect, population, wealth, cost, tax_baseline
     tax_rates = [round(tax_baseline * factor, 3) for factor in [0.5, 0.75, 1.0, 1.25, 1.5]]
     
     os.makedirs("data", exist_ok=True)
-    filepath = f'../data/results_{round_name}.csv'
+    today_str = datetime.datetime.now().strftime("%Y%m%d")
+    filepath = f'../data/results_{today_str}.csv'
 
     config = {
         "intellect": intellect,
@@ -19,35 +21,53 @@ def run_simulation(round_name, intellect, population, wealth, cost, tax_baseline
     print(f"--- Simulation {round_name} started. ({years} years) ---")
     
     with open(filepath, 'w', newline = '') as f:
-        fieldnames = ['year','population','gini','morale','yield','edu_rate','tax_rate']
+        fieldnames = ['run_id','year','population','gini','morale','yield','edu_rate','tax_rate']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
     
         for i in edu_rates:
             for j in tax_rates:
-                sample = CityEngine(name=f"Sample_{i}_{j}", config=config)
-                last_valid_result = {}
+                run_id = f"Sample_{i}_{j}"
+                sample = CityEngine(name=run_id, config=config)
                 
                 for year in range(1, years + 1):
                     response = sample.run_fiscal_year(i,j)
-                    if response['population'] == 0 or response == 0:
+                    if isinstance(response, dict) and response['population'] == 0:
                         break
-                    last_valid_result = response
-    
-                last_valid_result['edu_rate'] = i
-                last_valid_result['tax_rate'] = j
-                writer.writerow(last_valid_result)
+                    if response == 0:
+                        break
+                
+                report = sample.get_report()
+                zipped_data = zip(
+                    report['history_pop'], 
+                    report['history_gini'], 
+                    report['history_morale'], 
+                    report['history_yield']
+                )
+                
+                for idx, (pop, gini, mor, yld) in enumerate(zipped_data):
+                    writer.writerow({
+                        'run_id': run_id,
+                        'year': idx + 1,
+                        'population': pop,
+                        'gini': gini,
+                        'morale': round(mor, 2),
+                        'yield': yld,
+                        'edu_rate': edu,
+                        'tax_rate': tax
+                    })
     
     print(f"Simulation complete. {round_name} data saved to {filepath}")
     return filepath
 
 if __name__ == "__main__":
-    round_name = input("")
-    intellect = float(input(""))
-    population = int(input(""))
-    wealth = float(input(""))
-    cost = float(input(""))
-    tax_baseline = float(input(""))
-    edu_baseline = float(input(""))
-    years = int(input(""))
+    round_name = input("Round Name: ")
+    intellect = float(input("Initial Intellect: "))
+    population = int(input("Initial Population: "))
+    wealth = float(input("Initial Personal Wealth: "))
+    cost = float(input("Initial Survival Cost: "))
+    tax_baseline = float(input("Tax Base: "))
+    edu_baseline = float(input("Educational Input Base: "))
+    years = int(input("Years: "))
     run_simulation(round_name, intellect, population, wealth, cost, tax_baseline, edu_baseline, years)
+
