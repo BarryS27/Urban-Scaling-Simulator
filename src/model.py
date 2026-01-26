@@ -7,10 +7,19 @@ class CityEngine:
     Integrates urban scaling laws, logistic population growth, and endogenous 
     growth theories to simulate wealth distribution and migration.
     """
-    def __init__(self, name, intellect=4.5, population=1000, cost=10.0, wealth=50.0):
+    def __init__(self, name, config=None):
         # Basic identification and state variables
         self.name = name
-        self.intellect = intellect                              # Total Factor Productivity (TFP)
+        default_config = {
+            "intellect": 4.5,
+            "population": 1000,
+            "wealth": 50.0,
+            "cost": 10.0
+        }
+        if config:
+            default_config.update(config)
+        
+        self.intellect = default_config["intellect"]            # Total Factor Productivity (TFP)
         self.year = 0
 
         # System Constants
@@ -18,10 +27,10 @@ class CityEngine:
         self.land_capacity = 10000                              # Carrying capacity (K) of the environment
         self.base_growth = 0.008                                # Intrinsic growth rate (r)
         self.corruption = 0.05                                  # Friction coefficient in economic yield (Reserved for expansion)
-        self.cost = cost                                        # Per capita annual survival cost
+        self.cost = default_config["cost"]                      # Per capita annual survival cost
 
         # Population initialization: 1000 individuals with 50.0 units of wealth each
-        self.wealth_dist = [wealth] * population
+        self.wealth_dist = [default_config["wealth"]] * default_config["population"]
         self.gini_data = []                                     # Historical tracking of Gini Coefficient
         self.population_data = []                               # Historical tracking of population size
 
