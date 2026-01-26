@@ -85,7 +85,6 @@ class CityEngine:
             # Remove the n individuals with the lowest wealth
             self.wealth_dist = self.wealth_dist[num_to_remove:]
     
-    # 
     def run_fiscal_year(self, edu_rate, tax_rate):
         """
         Executes a full cycle of the city's socio-economic activity.
@@ -153,4 +152,13 @@ class CityEngine:
             "gini": round(gini, 3),
             "morale": round(morale, 2),
             "yield": int(gross_yield)
+        }
+
+    def get_report(self):
+        """Print final data"""
+        return {
+            "name": self.name,
+            "final_tfp": self.intellect,
+            "history_gini": self.gini_data,
+            "history_pop": self.population_data
         }
