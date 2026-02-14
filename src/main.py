@@ -53,8 +53,8 @@ def run_simulation(round_name, intellect, population, wealth, cost, tax_baseline
                         'gini': gini,
                         'morale': round(mor, 2),
                         'yield': yld,
-                        'edu_rate': edu,
-                        'tax_rate': tax
+                        'edu_rate': i,
+                        'tax_rate': j
                     })
     
     print(f"Simulation complete. {round_name} data saved to {filepath}")
@@ -70,4 +70,5 @@ if __name__ == "__main__":
     edu_baseline = float(input("Educational Input Base: "))
     years = int(input("Years: "))
     run_simulation(round_name, intellect, population, wealth, cost, tax_baseline, edu_baseline, years)
+
 
