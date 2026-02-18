@@ -1,5 +1,4 @@
-import math
-import random
+import numpy as np
 
 class CityEngine:
     """
@@ -30,7 +29,7 @@ class CityEngine:
         self.cost = default_config["cost"]                      # Per capita annual survival cost
 
         # Population initialization: 1000 individuals with 50.0 units of wealth each
-        self.wealth_dist = [default_config["wealth"]] * default_config["population"]
+        self.wealth_dist = np.full(int(default_config["population"]), default_config["wealth"], dtype=np.float64)
         self.gini_data = []                                     # Historical tracking of Gini Coefficient
         self.population_data = []                               # Historical tracking of population size
         self.morale_data = []                                   # Historical tracking of morale
@@ -59,20 +58,20 @@ class CityEngine:
         G = (2 * sum(i * w_i)) / (n * sum(w_i)) - (n + 1) / n
         Result ranges from 0 (perfect equality) to 1 (perfect inequality).
         """
-        if not wealth:
+        if len(wealth) == 0:
             return 0
         
-        sorted_w = sorted(wealth)
-        n = len(sorted_w)
-        total = sum(sorted_w)
-        cum_wealth = 0
+        sorted_w = np.sort(wealth)
+        n = len(wealth)
+        total = np.sum(sorted_w)
 
         # Avoid division by zero if the total wealth of the society is zero
         if total == 0:
             return 0
         
         # Calculate the cumulative weighted wealth
-        cum_wealth = sum(i * w for i, w in enumerate(sorted_w, start=1))
+        index = np.arange(1, n + 1)
+        cum_wealth = np.sum(index * sorted_w)
 
         # Standard Gini formula for discrete distributions
         gini = (2 * cum_wealth) / (n * total) - (n + 1) / n
@@ -84,7 +83,7 @@ class CityEngine:
         infrastructure, policy barriers, and information flow.
         """
         infra_effect = 1 + self.alpha_I * self.infrastructure
-        policy_effect = math.exp(-self.alpha_P * self.policy_barrier)
+        policy_effect = np.exp(-self.alpha_P * self.policy_barrier)
         info_effect = 1 + self.alpha_F * self.info_flow
     
         return self.eta_base * infra_effect * policy_effect * info_effect
@@ -102,24 +101,22 @@ class CityEngine:
 
         # Case 1: Inward Migration / Births
         if diff > 0:
-            avg_wealth = sum(self.wealth_dist) / self.population
-            newcomers = []
-            for _ in range(diff):
-                # Newcomers enter with a wealth shock based on log-normal distribution
-                immigrant_wealth = avg_wealth * random.lognormvariate(0, 0.3)
-                newcomers.append(max(5.0, immigrant_wealth))    # Ensure a minimum survival buffer
-            self.wealth_dist.extend(newcomers)
+            avg_wealth = np.mean(self.wealth_dist)
+            shocks = np.random.lognormal(0, 0.3, diff)
+            newcomers = np.maximum(5.0, avg_wealth * shocks)
+            self.wealth_dist = np.concatenate([self.wealth_dist, newcomers])
 
         # Case 2: Outward Migration / Social Attrition
         elif diff < 0:
             num_to_remove = abs(diff)
             if num_to_remove >= self.population:
-                self.wealth_dist = []
+                self.wealth_dist = np.array([], dtype=np.float64)
             else:
                 # Vulnerability score = random factor / (wealth + 0.1)
-                scored_population = [(w, random.random() / (w + 0.1)) for w in self.wealth_dist]
-                scored_population.sort(key=lambda x: x[1], reverse=True)
-                self.wealth_dist = [item[0] for item in scored_population[num_to_remove:]]
+                vulnerability = np.random.random(self.population) / (self.wealth_dist + 0.1)
+                keep_count = self.population - num_to_remove
+                safe_indices = np.argsort(vulnerability)[:keep_count]
+                self.wealth_dist = self.wealth_dist[safe_indices]
     
     def run_fiscal_year(self, edu_rate, tax_rate):
         """
@@ -132,12 +129,8 @@ class CityEngine:
         self.year += 1
 
         # 1. Only survivors form the "Effective Labor Force".
-        survivors = []
-        for w in self.wealth_dist:
-            w -= self.cost                                      # Survival cost is paid at the start of the year
-            if w > 0:
-                survivors.append(w)
-        self.wealth_dist = survivors
+        self.wealth_dist -= self.cost
+        self.wealth_dist = self.wealth_dist[self.wealth_dist > 0]
 
         # Post-attrition safety check
         if self.population == 0:
@@ -148,20 +141,19 @@ class CityEngine:
             return {"population": 0}
 
         # 2. Production & Distribution by the Effective Labor Force
-        gross_yield = self.intellect * math.pow(self.population, self.beta)
+        gross_yield = self.intellect * (self.population ** self.beta)
         net_to_people = gross_yield * (1 - tax_rate)
         avg_share = net_to_people / self.population
 
         # Distribute wealth to survivors
-        for i in range(self.population):
-            shock = random.lognormvariate(0, 0.3)
-            self.wealth_dist[i] += avg_share * shock
+        shocks = np.random.lognormal(0, 0.3, self.population)
+        self.wealth_dist += avg_share * shocks
 
         # 4. Socio-metric calculation
         gini = self.get_gini(self.wealth_dist)
-        mean_wealth = sum(self.wealth_dist) / self.population
+        mean_wealth = np.mean(self.wealth_dist)
         # Morale is derived from per capita wealth adjusted by the fairness of distribution
-        morale = mean_wealth * math.pow(1 - gini, 0.6)
+        morale = mean_wealth * ((1 - gini) ** 0.6)
 
         self.gini_data.append(gini)
         self.population_data.append(self.population)
@@ -170,7 +162,7 @@ class CityEngine:
 
         # 5. Endogenous Growth: Education investment drives Intellect (TFP)
         # Marginal returns on TFP
-        growth_factor = (edu_rate * 0.15) / math.sqrt(self.intellect)
+        growth_factor = (edu_rate * 0.15) / np.sqrt(self.intellect)
         self.intellect *= (1 + growth_factor)
 
         # 6. Macroscopic Population Dynamics
@@ -178,15 +170,15 @@ class CityEngine:
         eta = self.get_migration_sensitivity()
         benchmark_morale = 25
         
-        raw_migration = eta * math.log(max(morale, 1e-9) / benchmark_morale)
-        MAX_OUTFLOW_RATE = math.log(0.7)                          # ln(0.7) ≈ -0.356 (represents max 30% drop)
+        raw_migration = eta * mp.log(max(morale, 1e-9) / benchmark_morale)
+        MAX_OUTFLOW_RATE = np.log(0.7)                          # ln(0.7) ≈ -0.356 (represents max 30% drop)
         migration = max(MAX_OUTFLOW_RATE, raw_migration)
 
         # Logistic growth accounts for environmental carrying capacity
         logistic_growth = self.base_growth * (1 - self.population / self.land_capacity)
 
         # Calculate target population for the next cycle
-        projected_population = int(self.population * math.exp(logistic_growth + migration))
+        projected_population = int(self.population * np.exp(logistic_growth + migration))
 
         # Synchronize macroscopic math with microscopic agent list
         self.handle_population_shift(projected_population)
